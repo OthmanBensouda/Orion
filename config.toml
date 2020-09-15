@@ -187,7 +187,7 @@ disqusShortname = ""
 
     [[params.footer.social]]
       icon = "fa-linkedin"
-      url= "https://www.linkedin.com/in/othman-bensouda-715330131/"
+      url= "https://https://www.linkedin.com/in/othman-bensouda-koraïchi-715330131/"
       label = "LinkedIn"
 
     [[params.footer.quicklinks]]
