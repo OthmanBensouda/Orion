@@ -92,7 +92,7 @@ disqusShortname = ""
     # Display your showcases here.
     
     [[params.tiles.showcase]]
-      title = "NYT masks"
+      title = "NYT masksblo"
       subtitle = "How does mask use acceptance vary in the US?"
       image = "pic11.jpg"
       url = "blogs/blog5"
