@@ -1,5 +1,5 @@
 # Site settings
-baseURL = "http://othman-portfolio.netlify.app"
+baseURL = "http://othman-portfolio.netlify.app/"
 languageCode = "en-us"
 title = "Portfolio website for Othman Bensouda Koraichi"
 theme = "forty"
@@ -92,7 +92,7 @@ disqusShortname = ""
     # Display your showcases here.
     
     [[params.tiles.showcase]]
-      title = "NYT masksblo"
+      title = "NYT masks"
       subtitle = "How does mask use acceptance vary in the US?"
       image = "pic11.jpg"
       url = "blogs/blog5"
