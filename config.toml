@@ -98,19 +98,19 @@ disqusShortname = ""
       url = "https://www.challenge.ma/ismail-bensouda-fondateur-de-gda-il-est-temps-que-la-data-science-simpose-au-maroc-dans-toutes-les-grandes-entreprises-129970/"
 
     [[params.tiles.showcase]]
-      title = "Our first research publication (French)"
+      title = "Our first research publication (FR)"
       subtitle = "Understand the spread of a virus"
       image = "coronavirus.jpg"
       url = "blogs/SIRV4.pdf"
 
     [[params.tiles.showcase]]
-      title = "Analysis of Airbnb data"
+      title = "Analysis of Airbnb data (ENG)"
       subtitle = "Prediction model for 2 people spending 4 nights in Beijing "
       image = "airbnb.jpg"
       url = "blogs/regression_obk.html"
 
     [[params.tiles.showcase]]
-      title = "Worldbank data analysis"
+      title = "Worldbank data analysis (ENG)"
       subtitle = "Getting insights from the analysis of 6 key socioeconomic variables"
       image = "worldbank.jpg"
       url = "blogs/worldbank.html"
