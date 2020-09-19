@@ -95,7 +95,7 @@ disqusShortname = ""
       title = "Our first article in Morocco"
       subtitle = "It is time for Moroccan companies to embrace Data Science "
       image = "ismail_bensouda.png"
-      url = "blogs/blog5"
+      url = "https://www.challenge.ma/ismail-bensouda-fondateur-de-gda-il-est-temps-que-la-data-science-simpose-au-maroc-dans-toutes-les-grandes-entreprises-129970/"
 
     [[params.tiles.showcase]]
       title = "Tempus"
