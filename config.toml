@@ -51,13 +51,13 @@ disqusShortname = ""
       name = "Blogs"
       url = "blogs"
 
-    [[params.navigation.links]]
-      name = "Generic Blog"
-      url = "blogs/ipsum"
+   # [[params.navigation.links]]
+     # name = "Generic Blog"
+     # url = "blogs/ipsum"
 
-    [[params.navigation.links]]
-      name = "Elements"
-      url = "elements.html"
+    #[[params.navigation.links]]
+      #name = "Elements"
+     # url = "elements.html"
 
     # Add custom links here by uncommenting code below. To remove links just delete
     # the [[params.navigation.links]] map associated with that link. Copy and paste
@@ -82,8 +82,8 @@ disqusShortname = ""
     # To change the background image on the homepage banner, replace 'banner.jpg' in
     # the 'static/img' folder.
     title = "Hi, my name is Othman Bensouda Koraichi"
-    subtitle = "A RESPONSIVE SITE TEMPLATE DESIGNED BY HTML5 UP\nAND RELEASED UNDER THE CREATIVE COMMONS."
-    buttonText = "Get Started"
+    subtitle = "You will find on this website the latest information on Bensouda brothers' data science company and analyses"
+    buttonText = "Get started!"
 
 
   # Tiles Section
@@ -92,9 +92,9 @@ disqusShortname = ""
     # Display your showcases here.
     
     [[params.tiles.showcase]]
-      title = "NYT masks"
-      subtitle = "How does mask use acceptance vary in the US?"
-      image = "pic11.jpg"
+      title = "Our first article in Morocco"
+      subtitle = "It is time for Moroccan companies to adopt Data Science "
+      image = "Ismail Benspouda.jpg"
       url = "blogs/blog5"
 
     [[params.tiles.showcase]]
@@ -126,7 +126,7 @@ disqusShortname = ""
 
   # Section Type Two
   [params.two]
-    enable = true
+    enable = false
     title = "Massa libero"
     subtitle = """Nullam et orci eu lorem consequat tincidunt vivamus et sagittis libero. 
     Mauris aliquet magna magna sed nunc rhoncus pharetra. 
@@ -163,9 +163,9 @@ disqusShortname = ""
     title = "Email"
     email = "othmanb.mam2021@london.edu"
 
-    [[params.contact.phone]]
+    #[[params.contact.phone]]
     #title = "Phone"
-   #phone = "(000) 000-0000 x1234"
+   #phone = ""
 
     [[params.contact.address]]
     #title = "Address"
@@ -175,8 +175,8 @@ disqusShortname = ""
 
   # Footer section
   [params.footer]
-    enable = true
-    copyright = "Company Name"
+    enable = false
+    copyright = "Adalyne"
 
     # Uses font awesome icons
     
@@ -190,7 +190,7 @@ disqusShortname = ""
       url= "https://https://www.linkedin.com/in/othman-bensouda-koraïchi-715330131/"
       label = "LinkedIn"
 
-    [[params.footer.quicklinks]]
-      text = "Design: "
-      url= "https://www.html5up.net"
-      alt = "HTML5 UP"
+    #[[params.footer.quicklinks]]
+     # text = " "
+      #url= ""
+      #alt = ""
