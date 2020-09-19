@@ -92,16 +92,16 @@ disqusShortname = ""
     # Display your showcases here.
     
     [[params.tiles.showcase]]
-      title = "Our first article in Morocco"
+      title = "Our first article in Morocco (French)"
       subtitle = "It is time for Moroccan companies to embrace Data Science "
       image = "ismail_bensouda.png"
       url = "https://www.challenge.ma/ismail-bensouda-fondateur-de-gda-il-est-temps-que-la-data-science-simpose-au-maroc-dans-toutes-les-grandes-entreprises-129970/"
 
     [[params.tiles.showcase]]
-      title = "Tempus"
-      subtitle = "Feugiat Amet Tempus"
-      image = "pic02.jpg"
-      url = "blogs/tempus"
+      title = "Our first research publication (French)"
+      subtitle = "Understand the spread of a virus"
+      image = "coronavirus.jpg"
+      url = "blogs/SIRV4.pdf"
 
     [[params.tiles.showcase]]
       title = "Magna"
@@ -163,9 +163,9 @@ disqusShortname = ""
     title = "Email"
     email = "othmanb.mam2021@london.edu"
 
-    #[[params.contact.phone]]
-    #title = "Phone"
-   #phone = ""
+    [[params.contact.phone]]
+    title = "Phone"
+    phone = "+44 0 79 58 01 55 30"
 
     [[params.contact.address]]
     #title = "Address"
@@ -174,9 +174,9 @@ disqusShortname = ""
     country = "United Kingdom"
 
   # Footer section
-  [params.footer]
-    enable = false
-    copyright = "Adalyne"
+    [params.footer]
+    enable = true
+    copyright = ""
 
     # Uses font awesome icons
     
@@ -187,10 +187,10 @@ disqusShortname = ""
 
     [[params.footer.social]]
       icon = "fa-linkedin"
-      url= "https://https://www.linkedin.com/in/othman-bensouda-koraïchi-715330131/"
+      url= "https://www.linkedin.com/in/othman-bensouda-kora%C3%AFchi-715330131/"
       label = "LinkedIn"
 
-    #[[params.footer.quicklinks]]
-     # text = " "
-      #url= ""
-      #alt = ""
+    [[params.footer.quicklinks]]
+     text = " "
+     url= ""
+     alt = ""
