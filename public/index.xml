@@ -6,10 +6,20 @@
     <description>Recent content on Portfolio website for Othman Bensouda Koraichi</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 31 Oct 2017 22:42:51 -0500</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Airbnb - Regression Model</title>
+      <link>/blogs/regression_obk/</link>
+      <pubDate>Sat, 19 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/blogs/regression_obk/</guid>
+      <description>AirBnB analytics - Beijing Introduction The following project focuses on the analysis of an AirBnB dataset. A data cleaning has been firstly conducted to ensure reliable data. The output of the is a multivariate regression model that predicts the total cost of two people to stay at an AirBnB property in Beijing for 4 nights.
+ Executive summary The dataset obtained from airBnB contained a vast amount of information which allows for the development of a broad range of insights into the operations of airBnB in Beijing.</description>
+    </item>
     
     <item>
       <title>Aliquam</title>
@@ -36,15 +46,6 @@
       
       <guid>/blogs/magna/</guid>
       <description></description>
-    </item>
-    
-    <item>
-      <title>Ipsum</title>
-      <link>/blogs/ipsum/</link>
-      <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
-      
-      <guid>/blogs/ipsum/</guid>
-      <description>Nullam et orci eu lorem consequat tincidunt vivamus et sagittis magna sed nunc rhoncus condimentum sem. In efficitur ligula tate urna. Maecenas massa sed magna lacinia magna pellentesque lorem ipsum dolor. Nullam et orci eu lorem consequat tincidunt. Vivamus et sagittis tempus. yuyyyu</description>
     </item>
     
     <item>

@@ -104,10 +104,10 @@ disqusShortname = ""
       url = "blogs/SIRV4.pdf"
 
     [[params.tiles.showcase]]
-      title = "Analysis of the relationships between the 6 most important socioeconomic variables"
-      subtitle = "Worldbank data"
-      image = "worldbank.jpg"
-      url = "blogs/blog1.rmd"
+      title = "Analysis of Airbnb data"
+      subtitle = "Prediction model for 2 people spending 4 nights in Beijing "
+      image = "airbnb.jpg"
+      url = "blogs/regression_obk.html"
 
     [[params.tiles.showcase]]
       title = "Ipsum"
