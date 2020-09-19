@@ -104,10 +104,10 @@ disqusShortname = ""
       url = "blogs/SIRV4.pdf"
 
     [[params.tiles.showcase]]
-      title = "Magna"
-      subtitle = "Lorem Etiam Nullam"
-      image = "pic03.jpg"
-      url = "blogs/magna"
+      title = "Analysis of the relationships between the 6 most important socioeconomic variables"
+      subtitle = "Worldbank data"
+      image = "worldbank.jpg"
+      url = "blogs/blog1"
 
     [[params.tiles.showcase]]
       title = "Ipsum"
