@@ -107,7 +107,7 @@ disqusShortname = ""
       title = "Analysis of the relationships between the 6 most important socioeconomic variables"
       subtitle = "Worldbank data"
       image = "worldbank.jpg"
-      url = "blogs/blog1"
+      url = "blogs/blog1.rmd"
 
     [[params.tiles.showcase]]
       title = "Ipsum"
