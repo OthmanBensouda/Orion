@@ -93,8 +93,8 @@ disqusShortname = ""
     
     [[params.tiles.showcase]]
       title = "Our first article in Morocco"
-      subtitle = "It is time for Moroccan companies to adopt Data Science "
-      image = "Ismail Benspouda.jpg"
+      subtitle = "It is time for Moroccan companies to embrace Data Science "
+      image = "ismail_bensouda.jpg"
       url = "blogs/blog5"
 
     [[params.tiles.showcase]]
