@@ -110,10 +110,10 @@ disqusShortname = ""
       url = "blogs/regression_obk.html"
 
     [[params.tiles.showcase]]
-      title = "Ipsum"
-      subtitle = "Nisl Sed Aliquam"
-      image = "pic04.jpg"
-      url = "blogs/ipsum"
+      title = "Worldbank data analysis"
+      subtitle = "Getting insights from the analysis of 6 key socioeconomic variables"
+      image = "worldbank.jpg"
+      url = "blogs/worldbank.html"
 
     # You can make more showcases by copy and pasting the code above
 

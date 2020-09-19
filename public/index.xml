@@ -22,6 +22,16 @@
     </item>
     
     <item>
+      <title>Worldbank data analysis</title>
+      <link>/blogs/worldbank/</link>
+      <pubDate>Sat, 19 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/blogs/worldbank/</guid>
+      <description>The purpose of this analysis is to analyze worldbank data in order to get valuable insights about the relationships among the following socioeconomic variables:
+ Life expectancy at birth (life_expectancy_years.csv) GDP per capita in constant 2010 US$ Female fertility: The number of babies per woman Primary school enrollment as % of children attending primary school Mortality rate, for under 5, per 1000 live births HIV prevalence : The estimated number of people living with HIV per 100 population of age group 15-49.</description>
+    </item>
+    
+    <item>
       <title>Aliquam</title>
       <link>/blogs/aliquam/</link>
       <pubDate>Tue, 31 Oct 2017 22:42:51 -0500</pubDate>
