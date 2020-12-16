@@ -107,7 +107,7 @@ disqusShortname = ""
       title = "Investing in London"
       subtitle = "Stacked model to predict London house prices"
       image = "invest machine learning.jpg"
-      url = "Capstone project - Othman Bensouda Koraichi copy.html"
+      url = "blogs/Capstone project - Othman Bensouda Koraichi copy.html"
 
     [[params.tiles.showcase]]
       title = "Analysis of Airbnb data (ENG)"
