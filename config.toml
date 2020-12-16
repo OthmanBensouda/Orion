@@ -111,7 +111,7 @@ disqusShortname = ""
 
     [[params.tiles.showcase]]
       title = "Analysis of Airbnb data (ENG)"
-      subtitle = "Prediction model for 2 people spending 4 nights in Beijing "
+      subtitle = "Predictive model for 2 people spending 4 nights in Beijing "
       image = "airbnb.jpg"
       url = "blogs/regression_obk.html"
 
