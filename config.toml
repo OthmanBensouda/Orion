@@ -102,6 +102,12 @@ disqusShortname = ""
       subtitle = "Understand the spread of a virus"
       image = "coronavirus.jpg"
       url = "blogs/SIRV4.pdf"
+      
+      [[params.tiles.showcase]]
+      title = "Investing in London"
+      subtitle = "Stacked model to predict London house prices"
+      image = "invest machine learning.jpg"
+      url = "Capstone project - Othman Bensouda Koraichi copy.html"
 
     [[params.tiles.showcase]]
       title = "Analysis of Airbnb data (ENG)"

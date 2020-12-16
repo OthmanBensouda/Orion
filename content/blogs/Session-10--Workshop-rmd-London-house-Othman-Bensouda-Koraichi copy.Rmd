@@ -1,0 +1,1289 @@
+---
+title: 'Data Science Capstone Project -- London house prices'
+author: "Othman Bensouda Koraichi"
+date: "`r Sys.Date()`"
+output: 
+    html_document:
+      number_sections: true
+      highlight: haddock
+      theme: spacelab
+      toc: yes
+      toc_depth: 2
+      toc_float:
+        collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, load_libraries, include = FALSE}
+
+if(!is.element("tidyverse", installed.packages()[,1]))
+{  install.packages("tidyverse")}
+
+if(!is.element("Hmisc", installed.packages()[,1]))
+{  install.packages("Hmisc")} #package for data summary using `describe`
+
+if(!is.element("ggplot2", installed.packages()[,1]))
+{  install.packages("ggplot2")} #package for plots
+if(!is.element("ggthemes", installed.packages()[,1]))
+{  install.packages("ggthemes")} #package to make fancier ggplots
+
+if(!is.element("janitor", installed.packages()[,1]))
+{ install.packages("janitor")} #package to visualize results of machine learning tools
+if(!is.element("rpart.plot", installed.packages()[,1]))
+{  install.packages("rpart.plot")} #package to visualize trees
+
+library(caretEnsemble)
+library(rpart.plot)
+library(caret)
+library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
+library(lubridate)
+library(janitor) # clean_names()
+library(Hmisc)
+library(skimr)
+library(foreach)
+```
+
+# Introduction and learning objectives
+
+<div class = "navy1">
+The purpose of this exercise is to build an estimation engine to guide investment decisions in London house market. You will first build machine learning algorithms (and tune them) to estimate the house prices given variety of information about each property. Then, using your algorithm, you will choose 200 houses to invest in out of about 2000 houses on the market at the moment.
+
+
+<b>Learning objectives</b>
+ 
+<ol type="i">
+  <li>Using different data mining algorithms for prediction.</li>
+  <li>Dealing with large data sets</li>
+  <li>Tuning data mining algorithms</li>
+  <li>Interpreting data mining algorithms and deducing importance of variables</li>
+  <li>Using results of data mining algorithms to make business decisions</li>
+</ol>  
+</div>
+
+# Load data
+
+There are two sets of data, i) training data that has the actual prices ii) out of sample data that has the asking prices. Load both data sets. 
+
+First, we have to understand what information each column contains. Not all information provided might be useful in predicting house prices, but I will not make any assumptions before I decide what information I use in my prediction algorithms.
+
+```{r read-investigate}
+#read in the data
+
+london_house_prices_2019_training<-read.csv("training_data_assignment_with_prices.csv")
+london_house_prices_2019_out_of_sample<-read.csv("test_data_assignment.csv")
+
+
+
+#fix data types in both data sets
+
+#fix dates
+london_house_prices_2019_training <- london_house_prices_2019_training %>% mutate(date=as.Date(date))
+london_house_prices_2019_out_of_sample<-london_house_prices_2019_out_of_sample %>% mutate(date=as.Date(date))
+#change characters to factors
+london_house_prices_2019_training <- london_house_prices_2019_training %>% mutate_if(is.character,as.factor)
+london_house_prices_2019_out_of_sample<-london_house_prices_2019_out_of_sample %>% mutate_if(is.character,as.factor)
+
+
+#make sure out of sample data and training data has the same levels for factors 
+a<-union(levels(london_house_prices_2019_training$postcode_short),levels(london_house_prices_2019_out_of_sample$postcode_short))
+london_house_prices_2019_out_of_sample$postcode_short <- factor(london_house_prices_2019_out_of_sample$postcode_short, levels = a)
+london_house_prices_2019_training$postcode_short <- factor(london_house_prices_2019_training$postcode_short, levels = a)
+
+# #take a quick look at what's in the data
+# str(london_house_prices_2019_training)
+# str(london_house_prices_2019_out_of_sample)
+
+
+
+
+```
+
+
+# Visualize and examine data 
+
+## Glimpse and skim
+
+```{r}
+#Let's have a look at the dataset
+glimpse(london_house_prices_2019_training)
+#I skim through the data. Some variables have missing values : address2,town (very incomplete) and population (only 69 missing values)
+skim(london_house_prices_2019_training) 
+#I look at the data into more details with the describe function
+#describe(london_house_prices_2019_training)
+```
+
+## Distribution of price
+
+```{r}
+#We study the distribution of the most important variable : price. The distribution is right skewed.
+london_house_prices_2019_training %>%
+  ggplot(aes(x= price)) + geom_histogram() +
+  labs(title = "The distribution of price is right-skewed",subtitle ="", x= "Price", y = "Count") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+
+
+#Using log prices
+london_house_prices_2019_training %>%
+  ggplot(aes(x= log(price))) + geom_histogram() +
+  labs(title = "Log price is normally distributed",subtitle ="", x= "Price", y = "Count") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+
+
+
+
+
+```
+
+The distribution of price in our dataset is right-skewed. Using a log transformation makes  data look more like the normal distribution. This could especially be helpful to know if I use a linear regression. I will have to test both price and log(price) if I make a regression.
+
+## Price and date
+
+```{r}
+#I want to see the prices by date. Is there some kind of seasonality or a pattern? I see some regular surges. Maybe more houses are sold on weekends.
+london_house_prices_2019_training %>%
+  ggplot(aes(x=date,y=price)) + geom_col() + labs(title = "Regular surges appear over time",subtitle ="", x= "Date", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+```
+
+## Price and number of habitable rooms
+
+```{r}
+#Let's see the distribution of price according to the number of rooms. The median price does not seem to increase after 10 rooms.
+london_house_prices_2019_training %>%
+  ggplot(aes(x=as.factor(number_habitable_rooms),price)) + geom_boxplot() + labs(title = "Median price does not increase after 10 rooms",subtitle ="", x= "Number of habitable rooms", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+```
+
+
+## Number of habitable rooms and total floor area
+
+```{r}
+
+#Let's see the number of rooms vs the total floor area. I would obviously expect it to be positively correlated but I want to make sure that it is the case. I prefer not to make too many assumptions about data.
+
+london_house_prices_2019_training %>%
+ggplot(aes(x=as.factor(number_habitable_rooms),total_floor_area)) + geom_boxplot() + labs(title = "Total floor area increases along with number of habitable rooms",subtitle ="", x= "Number of habitable rooms", y = "Total floor area") + theme_minimal()  + theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+
+```
+
+## Size and price of houses
+
+```{r}
+#How big are the biggest houses in the dataset?
+london_house_prices_2019_training %>% 
+  arrange(desc(total_floor_area)) %>%
+  head(10) %>%
+  summarise(district,total_floor_area,price)
+
+#How small are the smallest houses in the dataset?
+london_house_prices_2019_training %>% 
+  arrange(total_floor_area) %>%
+  head(10) %>%
+  summarise(district,total_floor_area,price)
+
+#What are the most expensive houses in the dataset?
+london_house_prices_2019_training %>% 
+  arrange(desc(price)) %>%
+  head(10) %>%
+  summarise(district,total_floor_area,price)
+
+#What are the least expensive houses in the dataset?
+london_house_prices_2019_training %>% 
+  arrange(price) %>%
+  head(10)  %>%
+  summarise(district,total_floor_area,price)
+```
+
+## Price and distance to nearest station
+
+```{r}
+#Is distance to station very correlated with price? Pearson correlation coefficient = -0.129. I would have expected a bigger negative correlation.
+london_house_prices_2019_training %>%
+ggplot(aes(x=distance_to_station,y=price)) + geom_smooth(method="lm") + labs(title = "Distance to station seems very negatively correlated with price..",subtitle ="But the correlation coefficient has a low magnitude!", x= "Distance to station", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank()) + geom_text(
+    data = data.frame(x = 2.3, y = 0, label = "Pearson correlation coefficient = -0.129"),
+    aes(x = x, y = y, label = label),
+    colour="black",
+    family="Oswald",
+    size= 4.5,
+    hjust = 0.5,
+    lineheight = .8,
+    inherit.aes = FALSE)
+
+#Correlation coefficient between distance to station and price.
+cor(london_house_prices_2019_training$price,london_house_prices_2019_training$distance_to_station)
+```
+
+## Price and tenure
+
+```{r}
+#Let's see if price depends on tenure. Rentals and social properties seem to have lower prices than owner_occupied properties.
+london_house_prices_2019_training %>%
+  ggplot(aes(x=as.factor(tenure),price)) + geom_boxplot() + labs(title = "Owner-occupied properties are more expensive than the others",subtitle ="", x= "Tenure", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+```
+
+## Price and property types
+
+```{r}
+#Do different property types have different prices?
+london_house_prices_2019_training %>%
+  ggplot(aes(x=property_type,price)) + geom_boxplot()  + labs(title = "Detached properties are more expensive than the others",subtitle ="", x= "Tenure", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+```
+
+## Price and oldness
+
+```{r}
+#Do new houses really have a higher price?
+london_house_prices_2019_training %>%
+  ggplot(aes(x=whether_old_or_new,price)) + geom_boxplot() + labs(title = "Are new houses more expensive than old ones?",subtitle ="", x= "Whether old or New", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+```
+
+
+```{r}
+#The boxplot does not really answer this question, let's look at the average
+london_house_prices_2019_training %>% group_by(whether_old_or_new) %>%
+  summarise(mean(price))
+#New houses have a lower average price than old houses. However, this does not mean anything since old houses in the dataset could simply be bigger. Let's try to group by number of habitable rooms too. Now it makes sense. For the same number of rooms, houses are on average more expensive when they are new.
+london_house_prices_2019_training %>% group_by(number_habitable_rooms,whether_old_or_new) %>%
+  summarise(mean(price))
+
+#We see that there are only 8 new houses in the dataset! I can't really make conclusions based on that.
+london_house_prices_2019_training %>% group_by(whether_old_or_new) %>%
+  count()
+```
+
+
+## Price and districts
+
+```{r}
+#Are all districts equal in terms of price?
+london_house_prices_2019_training %>%
+  ggplot(aes(x=district,price)) + geom_boxplot() + labs(title = "Districts have radically different median prices",subtitle ="", x= "District", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+```
+
+
+## Price and total floor area
+
+```{r}
+#I expect total floor area to be very correlated with price. Let's check if this is the case. Both variables are very positively correlated (0.7)
+london_house_prices_2019_training %>%
+ggplot(aes(x=total_floor_area,y=price)) + geom_smooth() + labs(title = "Price increases along with total floor area ",subtitle ="", x= "Total floor area", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank()) + geom_text(
+    data = data.frame(x = 300, y = 1000000, label = "Pearson correlation coefficient = 0.69"),
+    aes(x = x, y = y, label = label),
+    colour="black",
+    family="Oswald",
+    size= 4.5,
+    hjust = 0.5,
+    lineheight = .8,
+    inherit.aes = FALSE)
+
+!cor(london_house_prices_2019_training$total_floor_area,london_house_prices_2019_training$price)
+
+
+```
+
+## Freehold and leashold properties
+
+```{r}
+#Let's see how freehold and leasehold properties are distributed. Let's also check if they have any impact on price. I expect freehold properties to be more expensive on average than leasehold properties.
+london_house_prices_2019_training %>% group_by(freehold_or_leasehold) %>%
+  count()
+london_house_prices_2019_training %>% group_by(freehold_or_leasehold) %>%
+  summarise(mean(price))
+```
+
+## Interaction variables
+
+```{r}
+#It makes sense to think that total floor area has a different effect on price depending on the postcode, or at least the district. I will verify this and eventually use an interaction variable in my linear regression. I check this with 2 districts in order to clearly visualize data.
+london_house_prices_2019_training %>% filter(district == c("Barking and Dagenham", "Kensington and Chelsea")) %>% ggplot(aes(x=total_floor_area,y=price,colour=district)) + geom_smooth(method="lm")  + labs(title = "Price per square meter differs among districts",subtitle ="", x= "Total floor area", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+
+
+
+#I repeat the process with postcodes
+london_house_prices_2019_training %>% filter(postcode_short == c("SW8", "NW1")) %>% ggplot(aes(x=total_floor_area,y=price,colour=postcode_short)) + geom_smooth(method="lm")  + labs(title = "Price per square meter differs among postcodes",subtitle ="", x= "Total floor area", y = "Price") +
+  theme_minimal()  +
+  theme(plot.title = element_text(face = "bold", size = 19, family = "Oswald"),
+      legend.title = element_text(family = "Oswald"),
+      legend.text = element_text(family = "Oswald",size=10),
+      plot.subtitle=element_text(size=17, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.text.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.text.y = element_text(size= 11,family = "Oswald",color="black"),
+      axis.title.x = element_text(size= 11, family='Oswald',color="black"),
+      axis.title.y = element_text(size= 11,family = "Oswald",color="black"),plot.title.position = "plot",
+       plot.caption.position = "plot",
+      panel.grid.minor=element_blank())
+
+
+
+
+```
+
+It is intuitive to think that the price per square meter is not the same in all districts or postcodes. This is further proved with these visualizations. The slope of the functions changes according to the district/postcode, indicating that using interaction variables may be necessary in our algorithms.
+
+## Correlation matrix
+
+We study the correlation between variables more into details.
+
+```{r, correlation table, warning=FALSE, message=FALSE}
+
+# produce a correlation table using GGally::ggcor()
+# this takes a while to plot
+
+library("GGally")
+london_house_prices_2019_training %>% 
+  select(-ID) %>% #keep Y variable last
+  ggcorr(method = c("pairwise", "pearson"), layout.exp = 2,label_round=2, label = TRUE,label_size = 2,hjust = 1,nbreaks = 5,size = 2,angle = -20)
+
+```
+
+Multicolinearity will not be a problem for our linear regression since it is a predictive model. It would have been a problem if our linear regression was explanatory since colinearity increases variance. 
+
+We will focus on the variables that are very correlated with price in our algorithms.
+
+
+
+```{r split the price data to training and testing}
+#let's do the initial split
+library(rsample)
+train_test_split <- initial_split(london_house_prices_2019_training, prop = 0.75) #training set contains 75% of the data
+# Create the training dataset
+train_data <- training(train_test_split)
+test_data <- testing(train_test_split)
+
+```
+
+# Algorithms
+
+## Linear regression model
+
+To help you get started I build a linear regression model below. I chose a subset of the features with no particular goal. You can (and should) add more variables and/or choose variable selection methods if you want.
+
+```{r}
+set.seed(1)
+
+#Define control variables
+control <- trainControl (
+    method="cv",
+    number=5,
+    verboseIter=TRUE) #by setting this to true the model will report its progress after each estimation
+```
+
+### Base model
+
+
+```{r}
+
+base_model<-train(
+    price ~ distance_to_station +water_company+property_type+whether_old_or_new+freehold_or_leasehold+latitude+ longitude+postcode_short,
+    train_data,
+   method = "lm",
+    trControl = control
+   )
+
+# summary of the results
+summary(base_model)
+
+#Use the model to make predictions out of sample in the testing set
+pred_base <-predict(base_model,test_data)
+
+test_results_base <-data.frame(RMSE = RMSE(pred_base, test_data$price), 
+                            Rsquared = R2(pred_base, test_data$price))
+
+test_results_base
+
+
+
+```
+
+### Best model
+
+```{r LR model}
+#we are going to train the model and report the results using k-fold cross validation
+model1_lm<-train(
+    price ~ distance_to_station +property_type+ freehold_or_leasehold+ london_zone + total_floor_area:district + co2_emissions_potential + co2_emissions_current + postcode_short:total_floor_area+ average_income ,
+    train_data,
+   method = "lm",
+    trControl = control
+   )
+
+# summary of the results
+summary(model1_lm)
+
+#Use the model to make predictions out of sample in the testing set
+pred<-predict(model1_lm,test_data)
+
+test_results<-data.frame(  RMSE = RMSE(pred, test_data$price), 
+                            Rsquared = R2(pred, test_data$price))
+
+test_results
+
+# we can check variable importance as well
+importance <- varImp(model1_lm, scale=TRUE)
+plot(importance)
+
+```
+
+### Best model with log transformation
+
+```{r}
+#Let's try our model with log price.
+
+model1_lm_log<-train(
+    log(price) ~ distance_to_station +property_type+ freehold_or_leasehold+ london_zone + total_floor_area:district + co2_emissions_potential + co2_emissions_current + postcode_short:total_floor_area+ average_income ,
+    train_data,
+   method = "lm",
+    trControl = control
+   )
+
+# summary of the results
+summary(model1_lm_log)
+
+#Use the model to make predictions out of sample in the testing set
+pred_log <-predict(model1_lm_log,test_data)
+
+test_results_log <-data.frame(  RMSE = RMSE(pred_log, test_data$price), 
+                            Rsquared = R2(pred_log, test_data$price))
+
+test_results_log
+
+
+
+
+```
+
+The RMSE is way higher so we will keep our model without the log transformation.
+
+
+## LASSO regression
+
+```{r LASSO model}
+#Using LASSO
+
+#we will look for the optimal lambda in this sequence
+lambda_seq <- seq(0, 1000, length = 1000)
+
+#LASSO regression with using 5-fold cross validation to select the best lambda among the lambdas specified in "lambda_seq".
+
+lasso <- train(
+price ~ distance_to_station +property_type+ freehold_or_leasehold+ london_zone + total_floor_area:district + co2_emissions_potential + co2_emissions_current + postcode_short:total_floor_area,
+data = train_data,
+method = "glmnet",
+preProc = c("center", "scale"), 
+#This option standardizes the data before running the LASSO regression
+trControl = control,
+ tuneGrid = expand.grid(alpha = 1, lambda = lambda_seq) #alpha=1 specifies to run a LASSO regression. If alpha=0 the model would run ridge regression.
+  )
+plot(lasso)
+
+coef(lasso$finalModel, lasso$bestTune$lambda)
+lasso$bestTune$lambda
+
+# Count of how many coefficients are greater than zero and how many are equal to zero
+sum(coef(lasso$finalModel, lasso$bestTune$lambda)!=0)
+sum(coef(lasso$finalModel, lasso$bestTune$lambda)==0)
+
+predictions_lasso <- predict(lasso,test_data)
+
+# Model prediction performance
+LASSO_results<-data.frame(  RMSE = RMSE(predictions_lasso, test_data$price), 
+                            Rsquare = R2(predictions_lasso, test_data$price)
+)
+LASSO_results
+
+#Lasso gives very similar results to OLS.
+
+
+
+#Stepwise regression
+
+#BackFit <- train(price ~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area:district + co2_emissions_potential + co2_emissions_current + postcode_short:total_floor_area,train_data,
+   # method = "leapBackward", #can chance method to "leapSeq", "leapForward"
+   # tuneGrid = data.frame(nvmax = 10:30), #Will find the best model with 10:16 variables. 
+   # trControl = control
+#)
+
+##show the results of all models
+#BackFit$results
+
+
+```
+
+## Regression trees
+
+Next I fit a tree model using the same subset of features. 
+
+```{r tree model}
+
+model2_tree <- train(
+  price ~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area + co2_emissions_potential + co2_emissions_current + district + latitude + longitude + average_income, train_data,
+  method = "rpart",
+  trControl = control,
+  tuneLength=10
+    )
+
+plot(model2_tree)
+
+#You can view how the tree performs
+model2_tree$results
+
+#You can view the final tree
+#rpart.plot(model2_tree$finalModel)
+
+#you can also visualize the variable importance
+#importance <- varImp(model2_tree, scale=TRUE)
+#plot(importance)
+
+
+#Tuning the complexity parameter
+
+#I choose cp values that seems to result in low error based on plot above
+Grid <- expand.grid(cp = seq( 0.0000, 0.0020,0.0001))
+
+dtree_fit <- train(price ~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area + co2_emissions_potential + co2_emissions_current + district + latitude + longitude + average_income ,data = train_data,
+                   method = "rpart",
+                   metric="RMSE",
+                   trControl=control,
+                   tuneGrid=Grid) 
+# Plot the best tree model found
+#rpart.plot(dtree_fit$finalModel)
+
+# Print the search results of 'train' function
+ plot(dtree_fit) 
+ 
+dtree_fit$results
+
+
+#Use the model to make predictions out of sample in the testing set
+predict_trees <- predict(dtree_fit,test_data)
+
+
+test_results_trees<-data.frame(  RMSE = RMSE(predict_trees, test_data$price), 
+                            Rsquared = R2(predict_trees, test_data$price))
+
+test_results_trees
+
+# we can check variable importance as well
+importance_tree <- varImp(dtree_fit, scale=TRUE)
+importance_tree
+plot(importance_tree)
+
+#Most postcodes are not important so I removed this variable.
+ 
+# #I set the number of samples in the bagging to iterations. You should experiment with different numbers
+# iterations<-100
+# 
+# #Next I use the foreach loop and I will combine the estimates in each sample in predictions. It works as a for loop but using `.combine` option I am also merging the results
+# predictions_trees_bagging <-foreach(m=1:iterations,.combine=cbind) %do% {
+#   #Change seed to get different samples
+#   set.seed(m*100)
+#   #Get a new sample
+#   training_positions <- sample(nrow(train_data), size=nrow(train_data),replace=TRUE)
+#   #fit a large tree model in this sample
+#   tree_bag <- rpart(formula= price~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area + co2_emissions_potential + co2_emissions_current + district + latitude + longitude + average_income,data = train_data,  
+#                      control =  rpart.control(cp = 0, maxdepth = 30,minbucket=2,minsplit=2))
+#   
+#   #foreach loop adds them to the predictions automatically
+# predictions_trees_bagging <- predict(tree_bag,test_data)
+# }
+# 
+# #Find the average estimate
+# predictions_trees_bagging <-rowMeans(predictions_trees_bagging)
+# 
+# test_results_bagging<-data.frame(  RMSE = RMSE(predictions_trees_bagging, test_data$price), 
+#                             Rsquared = R2(predictions_trees_bagging, test_data$price))
+# 
+# test_results_bagging
+
+
+
+
+```
+I will use a random forest with mtry = number of variables, which is equivalent to using a bagged tree.
+
+### Bagged tree
+
+```{r}
+
+# The following function gives the list of tunable parameters
+modelLookup("ranger")
+
+set.seed(1)
+  
+# Define the tuning grid: tuneGrid
+# Let's do a search on 'mtry'; number of variables to use in each split
+gridRF <- data.frame(
+  .mtry = 12 ,
+  .splitrule = "variance",
+  .min.node.size = 5
+)
+# Fit random forest: model= ranger using caret library and train function
+bagged_tree <- train(
+  price  ~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area + co2_emissions_potential + co2_emissions_current + district + latitude + longitude + average_income , data= train_data,
+  method = "ranger",
+  metric="RMSE",
+  trControl = control,
+  tuneGrid = gridRF,
+  importance = 'permutation',
+  num.trees= 500
+  #This is the method used to determine variable importance.
+  #Permutation=leave one variable out and fit the model again
+)
+
+
+predictions_bagged <-predict(bagged_tree,test_data)
+
+# Model prediction performance
+rf_bagged<-data.frame(  RMSE = RMSE(predictions_bagged, test_data$price), 
+                            Rsquare = R2(predictions_bagged, test_data$price))
+rf_bagged
+
+
+```
+
+As expected, the bagged tree is better than the long tree since it has a lower RMSE. I will keep this one for my stacking.
+
+## Random forest
+
+
+```{r}
+#MODEL WITH POSTCODE SHORT. PERFORMS BAD.
+
+# # Define the tuning grid: tuneGrid
+# # Let's do a search on 'mtry'; number of variables to use in each split
+# gridRF <- data.frame(
+#   .mtry = 5,
+#   .splitrule = "variance",
+#   .min.node.size = 5
+# )
+# # Fit random forest: model= ranger using caret library anf train function
+# rf_fit <- train(
+#   price  ~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area + co2_emissions_potential + co2_emissions_current + district + latitude + longitude + average_income + postcode_short, data= train_data,
+#   method = "ranger",
+#   metric="RMSE",
+#   trControl = control,
+#   tuneGrid = gridRF,
+#   importance = 'permutation',
+#   num.trees= 500
+#   #This is the method used to determine variable importance.
+#   #Permutation=leave one variable out and fit the model again
+# )
+# 
+# varImp(rf_fit)
+# 
+# plot(varImp(rf_fit))
+# 
+# summary(rf_fit)
+# 
+# print(rf_fit)
+# 
+# predictions_rf <-predict(rf_fit,test_data)
+# 
+# # Model prediction performance
+# rf_results<-data.frame(  RMSE = RMSE(predictions_rf, test_data$price), 
+#                             Rsquare = R2(predictions_rf, test_data$price))
+# rf_results 
+
+
+
+```
+
+```{r}
+
+# The following function gives the list of tunable parameters
+modelLookup("ranger")
+
+  
+# Define the tuning grid: tuneGrid
+# Let's do a search on 'mtry'; number of variables to use in each split
+gridRF <- data.frame(
+  .mtry = 5,
+  .splitrule = "variance",
+  .min.node.size = 5
+)
+# Fit random forest: model= ranger using caret library and train function
+rf_fit <- train(
+  price  ~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area + co2_emissions_potential + co2_emissions_current + district + latitude + longitude + average_income , data= train_data,
+  method = "ranger",
+  metric="RMSE",
+  trControl = control,
+  tuneGrid = gridRF,
+  importance = 'permutation',
+  num.trees= 500
+  #This is the method used to determine variable importance.
+  #Permutation=leave one variable out and fit the model again
+)
+
+varImp(rf_fit)
+
+plot(varImp(rf_fit))
+
+summary(rf_fit)
+
+print(rf_fit)
+
+predictions_rf <-predict(rf_fit,test_data)
+
+# Model prediction performance
+rf_results<-data.frame(  RMSE = RMSE(predictions_rf, test_data$price), 
+                            Rsquare = R2(predictions_rf, test_data$price))
+rf_results 
+
+
+```
+
+## KNN
+
+```{r}
+
+set.seed(1) #I will use cross validation. To be able to replicate the results I set the seed to a fixed number
+
+# Below I use 'train' function from caret library. 
+# 'preProcess': I use this option to center and scale the data
+# 'method' is knn
+# dfeault 'metric' is accuracy
+
+knn_fit <- train(price~ total_floor_area + latitude + longitude + number_habitable_rooms + num_tube_lines + num_rail_lines + num_light_rail_lines + distance_to_station + average_income + property_type + number_habitable_rooms + district + postcode_short , data=train_data,
+                 method = "knn",
+                 trControl = control, #use cross validation with 5 folds
+                 tuneLength = 10, #number of parameter values train function will try
+                 preProcess = c("center", "scale"))  #center and scale the data in k-nn this is pretty important
+
+knn_fit
+
+plot(knn_fit) #we can plot the results
+
+# I will store the values of k I want to experiment with in knnGrid
+
+knnGrid <-  expand.grid(k= seq(1,10 , by = 1)) 
+
+# By fixing the seed I can re-generate the results when needed
+set.seed(1)
+# Below I use 'train' function from caret library. 
+# 'preProcess': I use this option to center and scale the data
+# 'method' is knn
+# 'metric' is ROC or AUC
+# I already defined the 'trControl' and 'tuneGrid' options above
+fit_KNN <- train(price~ total_floor_area + latitude + longitude + distance_to_station + average_income + district, data=train_data,
+                 preProcess = c("center", "scale"), 
+                 method="knn", 
+                 metric="RMSE", 
+                 trControl=control,
+                 tuneGrid = knnGrid)
+# display results
+print(fit_KNN)
+
+# plot results
+plot(fit_KNN)
+
+pred_knn <-predict(fit_KNN,test_data)
+
+
+test_results_knn<-data.frame(  RMSE = RMSE(pred_knn, test_data$price), 
+                            Rsquared = R2(pred_knn, test_data$price))
+
+test_results_knn
+
+importance_knn <- varImp(fit_KNN, scale=TRUE)
+importance_knn
+plot(importance_knn)
+
+#I removed number habitable rooms, co2 emissions potential and co2 emissions current because it is very correlated with total_floor_area. I also used the importance plot and I concluded that property_type and num_light_rail_lines were not necessary. R-squared increased.
+
+
+```
+
+## Gradient boosting machine
+
+```{r}
+
+modelLookup("gbm")
+
+
+#Expand the search grid (see above for definitions)
+grid<-expand.grid(interaction.depth = 8,n.trees = 500,shrinkage =0.075, n.minobsinnode = 10)
+set.seed(100)
+#Train for gbm
+fit_gbm <- train(price~ total_floor_area + latitude + longitude + number_habitable_rooms + num_tube_lines + num_rail_lines + num_light_rail_lines + distance_to_station + average_income + property_type + number_habitable_rooms + district, data=train_data,
+                 method = "gbm", 
+                 trControl = control,
+                 tuneGrid =grid,
+                   metric = "RMSE",
+                 verbose = FALSE)
+
+#I had to remove postcode short because it was too computationally expensive
+print(fit_gbm)
+
+#performance, predict 
+
+predictions_gbm <-predict(fit_gbm, test_data)
+
+gbm_results<-data.frame(  RMSE = RMSE(predictions_gbm, test_data$price), 
+                            Rsquared = R2(predictions_gbm, test_data$price))
+gbm_results 
+
+
+
+```
+
+```{r}
+
+#modelLookup("gbm")
+
+#Expand the search grid (see above for definitions)
+#grid<-expand.grid(interaction.depth = 8,n.trees = 500,shrinkage =0.075, n.minobsinnode = 10)
+#set.seed(100)
+#Train for gbm
+#fit_gbm <- train(price~ total_floor_area + latitude + longitude + number_habitable_rooms + num_tube_lines + num_rail_lines + num_light_rail_lines + distance_to_station + average_income + property_type + number_habitable_rooms + district + postcode_short , data=train_data,
+  #               method = "gbm", 
+   #              trControl = control,
+    #             tuneGrid =grid,
+     #              metric = "RMSE",
+      #           verbose = FALSE
+       #          )
+
+#print(fit_gbm)
+
+#performance, predict 
+
+#predictions_gbm <-predict(fit_gbm, test_data)
+
+#gbm_results<-data.frame(  RMSE = RMSE(predictions_gbm, test_data$price), 
+                           # Rsquared = R2(predictions_gbm, test_data$price))
+#gbm_results 
+
+
+
+```
+
+
+# Stacking
+
+Use stacking to ensemble your algorithms.
+
+
+```{r,warning=FALSE,  message=FALSE }
+
+#number of folds in cross validation
+CVfolds <- 5
+
+#Define folds
+set.seed(1)
+  #create five folds with no repeats
+indexPreds <- createMultiFolds(train_data$price, CVfolds,times = 1) 
+#Define traincontrol using folds
+ctrl <- trainControl(method = "cv",  number = CVfolds, returnResamp = "final", savePredictions = "final", index = indexPreds,sampling = NULL)
+
+#training models
+
+#train linear regression
+linear_model <-train(
+    price ~ distance_to_station +property_type+ freehold_or_leasehold+ london_zone + total_floor_area:district + co2_emissions_potential + co2_emissions_current + postcode_short:total_floor_area+ average_income,
+    train_data,
+   method = "lm",
+    trControl = ctrl
+   )
+
+#train a tree (with different independent variables) use same trcontrol
+# Define the tuning grid: tuneGrid
+# Let's do a search on 'mtry'; number of variables to use in each split
+gridRF_bagged <- data.frame(
+  .mtry = 12,
+  .splitrule = "variance",
+  .min.node.size = 5
+)
+# Fit random forest: model= ranger using caret library and train function
+bagged_tree_model <- train(
+  price  ~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area + co2_emissions_potential + co2_emissions_current + district + latitude + longitude + average_income , data= train_data,
+  method = "ranger",
+  metric="RMSE",
+  trControl = ctrl,
+  tuneGrid = gridRF,
+  importance = 'permutation',
+  num.trees= 500
+  #This is the method used to determine variable importance.
+  #Permutation=leave one variable out and fit the model again
+)
+
+
+predictions_bagged <-predict(bagged_tree,test_data)
+
+#Train LASSO
+lambda_seq <- seq(0, 1000, length = 1000)
+
+#LASSO regression with using 5-fold cross validation to select the best lambda among the lambdas specified in "lambda_seq".
+
+lasso_model <- train(
+price ~ distance_to_station +property_type+ freehold_or_leasehold+ london_zone + total_floor_area:district + co2_emissions_potential + co2_emissions_current + postcode_short:total_floor_area,
+data = train_data,
+method = "glmnet",
+preProc = c("center", "scale"), 
+#This option standardizes the data before running the LASSO regression
+trControl = ctrl,
+ tuneGrid = expand.grid(alpha = 1, lambda = lambda_seq) #alpha=1 specifies to run a LASSO regression. If alpha=0 the model would run ridge regression.
+  )
+
+# Define the tuning grid: tuneGrid
+# Let's do a search on 'mtry'; number of variables to use in each split
+gridRF <- data.frame(
+  .mtry = 5,
+  .splitrule = "variance",
+  .min.node.size = 5
+)
+# Fit random forest: model= ranger using caret library anf train function
+rf_model <- train(
+  price  ~ distance_to_station +property_type+whether_old_or_new+freehold_or_leasehold+ london_zone + total_floor_area + co2_emissions_potential + co2_emissions_current + district + latitude + longitude + average_income , data= train_data,
+  method = "ranger",
+  metric="RMSE",
+  trControl = ctrl,
+  tuneGrid = gridRF,
+  importance = 'permutation',
+  num.trees= 500
+  #This is the method used to determine variable importance.
+  #Permutation=leave one variable out and fit the model again
+)
+
+#Gradient boosting machine
+
+grid<-expand.grid(interaction.depth = 8,n.trees = 500,shrinkage =0.075, n.minobsinnode = 10)
+#Train for gbm
+gbm_model <- train(price~ total_floor_area + latitude + longitude + number_habitable_rooms + num_tube_lines + num_rail_lines + num_light_rail_lines + distance_to_station + average_income + property_type + number_habitable_rooms + district, data=train_data,
+                 method = "gbm", 
+                 trControl = ctrl,
+                 tuneGrid =grid,
+                   metric = "RMSE",
+                 verbose = FALSE
+                 )
+
+#KNN
+knnGrid <-  expand.grid(k= seq(1,10 , by = 1)) 
+
+# Below I use 'train' function from caret library. 
+# 'preProcess': I use this option to center and scale the data
+# 'method' is knn
+# 'metric' is ROC or AUC
+# I already defined the 'trControl' and 'tuneGrid' options above
+knn_model <- train(price~ total_floor_area + latitude + longitude + distance_to_station + average_income + district, data=train_data,
+                 preProcess = c("center", "scale"), 
+                 method="knn", 
+                 metric="RMSE", 
+                 trControl=ctrl,
+                 tuneGrid = knnGrid)
+
+
+
+```
+
+
+```{r combine results}
+#combine the results 
+#make sure to use the method names  from above
+multimodel <- list(lm = linear_model, rpart =  bagged_tree_model, lasso = lasso_model, knn= knn_model, gbm = gbm_model, random_forest = rf_model )
+class(multimodel) <- "caretList"
+```
+
+## Differences in performance of each algorithm
+
+```{r visualize results}
+#we can visualize the differences in performance of each algorithm for each fold 
+  modelCor(resamples(multimodel))
+  dotplot(resamples(multimodel), metric = "Rsquared") #you can set metric=MAE, RMSE, or Rsquared 
+   xyplot(resamples(multimodel), metric = "Rsquared")
+    splom(resamples(multimodel), metric = "Rsquared")
+  
+```
+
+## Performance of each algorithm
+
+```{r}
+
+#Linear model
+test_results
+
+#LASSO
+LASSO_results
+
+#Bagged tree
+rf_bagged
+
+#Random forest
+rf_results
+
+#KNN
+test_results_knn
+
+#Gradient boosting machine
+gbm_results
+
+
+
+
+```
+
+## Performance of the stacked algorithm
+
+
+```{r}
+
+set.seed(1)
+library(caret)
+library(caretEnsemble)
+model_list<- caretStack(multimodel, #creating a model that stacks both models together
+                        trControl=ctrl,
+                        method="lm",
+                        metric="RMSE")
+
+
+summary(model_list)
+
+pred_stacked <- predict(model_list,test_data)
+test_results_stacked<-data.frame(  RMSE = RMSE(pred_stacked, test_data$price), 
+                            Rsquared = R2(pred_stacked, test_data$price))
+
+test_results_stacked
+
+
+```
+
+
+# Pick investments
+
+In this section you should use the best algorithm you identified to choose 200 properties from the out of sample data.
+
+```{r,warning=FALSE,  message=FALSE }
+
+
+numchoose=200
+
+oos<-london_house_prices_2019_out_of_sample
+
+
+#predict the value of houses
+oos$predict <- predict(model_list,oos)
+#Choose the ones you want to invest here
+#Make sure you choose exactly 200 of them
+
+oos <-oos %>% 
+  mutate(profitMargin=(predict-asking_price)/(asking_price)) %>% 
+  arrange(-profitMargin)
+#Make sure you chooses exactly 200 of them
+oos$buy=0
+oos[1:numchoose,]$buy=1
+oos<-oos %>% mutate( actualProfit=buy*profitMargin)
+#let's find the actual profit
+mean(oos$profitMargin)
+
+sum(oos$actualProfit)/numchoose
+
+#output your choices. Change the name of the file to your "lastname_firstname.csv"
+write.csv(oos,"bensouda_othman.csv")
+
+```
+
+```{r}
+
+library(ggmap)
+oos_map <- oos %>% mutate(longitude2=buy*longitude,latitude2=buy*latitude)
+  
+
+#I define the coordinates of London
+london <- c(left = -0.6, bottom = 51.2, right = 0.35, top = 51.8) 
+#let's get the map for London
+map_london <-ggmap(get_stamenmap(london, zoom = 10))
+
+#Now I add the points of the stops and searches
+map_london +
+geom_point(aes(x =longitude2, y = latitude2),data= oos_map,col="red", alpha=1, size= 0.6) +
+labs(title= "Map of my 200 best investments", x = "Longitude", y= "Latitude") + 
+theme(plot.title = element_text(face = "bold", size = 16, family = "Oswald"),
+      plot.subtitle=element_text(size=15, family = "Oswald"),
+      plot.caption = element_text(size=9 , family = "Oswald"),
+      axis.title.x = element_text(size=12,family="Oswald"),
+      axis.title.y = element_text(size=12,family="Oswald")
+      
+      )
+
+
+```
+
+
+# What is your return?
+
+Let's test how much money your algorithm can make. I will take the in-sample testing data (whose prices we know). And generate a random asking price. For the sake of simplicity assume that asking price is within 20% of the actual price. Then I will run my algorithm to see how it does on this data.
+
+
+```{r,warning=FALSE,  message=FALSE }
+
+
+numchoose=200
+set.seed(2)
+random_mult<-1/(1+runif(nrow(test_data), min = -0.2, max = 0.2))
+test_data$asking_price<- test_data$price*random_mult
+
+
+#predict the value of houses
+test_data$predict <- predict(model_list,test_data)
+
+
+#Choose the ones you want to invest here
+
+#Let's find the profit margin given our predicted price and asking price
+test_data<- test_data%>%mutate(profitMargin=(predict-asking_price)/asking_price)%>%arrange(-profitMargin)
+#Make sure you choose exactly 200 of them
+test_data$invest=0
+test_data[1:numchoose,]$invest=1
+
+
+#let's find the actual profit
+
+test_data<-test_data%>%mutate(profit=(price-asking_price)/asking_price)%>%mutate(actualProfit=invest*profit)
+
+#if we invest in everything
+mean(test_data$profit)
+
+#just invest in those we chose
+sum(test_data$actualProfit)/numchoose
+```
